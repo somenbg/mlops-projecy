@@ -1,0 +1,32 @@
+[
+  {
+    "job_id": 123456,
+    "trigger_params": {
+      "notebook_params": {
+        "input_path": "/path/to/input1",
+        "output_path": "/path/to/output1",
+        "model_version": "v1.0"
+      }
+    }
+  },
+  {
+    "job_id": 123457,
+    "trigger_params": {
+      "notebook_params": {
+        "input_path": "/path/to/input2",
+        "output_path": "/path/to/output2",
+        "model_version": "v1.1"
+      }
+    }
+  },
+  {
+    "job_id": 123458,
+    "trigger_params": {
+      "python_params": [
+        "--input-path", "/path/to/input3",
+        "--output-path", "/path/to/output3",
+        "--batch-size", "1000"
+      ]
+    }
+  }
+]

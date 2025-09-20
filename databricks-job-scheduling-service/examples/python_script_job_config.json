@@ -1,0 +1,32 @@
+{
+  "name": "example_python_script_job",
+  "new_cluster": {
+    "spark_version": "13.3.x-scala2.12",
+    "node_type_id": "i3.xlarge",
+    "num_workers": 1,
+    "spark_conf": {
+      "spark.sql.adaptive.enabled": "true"
+    }
+  },
+  "python_script_task": {
+    "python_file": "dbfs:/path/to/your/script.py"
+  },
+  "libraries": [
+    {
+      "pypi": {
+        "package": "requests"
+      }
+    },
+    {
+      "pypi": {
+        "package": "pandas"
+      }
+    }
+  ],
+  "timeout_seconds": 1800,
+  "max_retries": 1,
+  "tags": {
+    "environment": "development",
+    "team": "data-science"
+  }
+}
