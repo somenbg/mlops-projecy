@@ -30,8 +30,8 @@ fi
 
 echo "✅ Prerequisites check passed"
 
-# Start minikube with sufficient resources for ML workloads
-echo "🔧 Starting minikube with ML-optimized configuration..."
+# Start minikube
+echo "🔧 Starting minikube..."
 minikube start \
     --memory=4096 \
     --cpus=4 \
