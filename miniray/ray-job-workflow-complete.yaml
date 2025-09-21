@@ -1,0 +1,97 @@
+apiVersion: ray.io/v1
+kind: RayJob
+metadata:
+  name: ray-job-workflow-complete
+  namespace: ray-system
+spec:
+  entrypoint: |
+    pip install -U pip && pip install pandas scikit-learn joblib && 
+    python /workspace/data-processing.py --n-samples 10000 --output-dir /data --workflow-id workflow-complete &&
+    python /workspace/ml-training-workflow.py --data-dir /data --output-dir /models --workflow-id workflow-complete
+  shutdownAfterJobFinishes: true
+  ttlSecondsAfterFinished: 60
+  activeDeadlineSeconds: 1200  # 20 minutes for both steps
+  rayClusterSpec:
+    rayVersion: '2.49.0'
+    headGroupSpec:
+      rayStartParams:
+        dashboard-host: '0.0.0.0'
+        num-cpus: '2'
+        memory: '2000000000'  # 2GB
+      serviceType: ClusterIP
+      template:
+        metadata:
+          labels:
+            app: ray-head
+        spec:
+          containers:
+          - name: ray-head
+            image: rayproject/ray:2.49.0-py311-cpu
+            imagePullPolicy: Always
+            ports:
+            - containerPort: 6379
+              name: gcs-server
+            - containerPort: 8265
+              name: dashboard
+            - containerPort: 10001
+              name: client
+            resources:
+              limits:
+                cpu: "2"
+                memory: 2Gi
+              requests:
+                cpu: "1"
+                memory: 1Gi
+            volumeMounts:
+            - name: data-volume
+              mountPath: /data
+            - name: models-volume
+              mountPath: /models
+            - name: workflow-scripts
+              mountPath: /workspace
+            env:
+            - name: RAY_DISABLE_IMPORT_WARNING
+              value: "1"
+            command: ["/bin/bash", "-lc", "--"]
+            args: ["pip install -U pip && pip install pandas scikit-learn joblib && $KUBERAY_GEN_RAY_START_CMD"]
+          volumes:
+          - name: data-volume
+            emptyDir: {}
+          - name: models-volume
+            emptyDir: {}
+          - name: workflow-scripts
+            configMap:
+              name: workflow-scripts
+  submissionMode: K8sJobMode
+  submitterPodTemplate:
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: ray-job-submitter
+        image: rayproject/ray:2.49.0-py311-cpu
+        imagePullPolicy: Always
+        resources:
+          limits:
+            cpu: "1"
+            memory: "1Gi"
+          requests:
+            cpu: "0.5"
+            memory: "512Mi"
+        volumeMounts:
+        - name: data-volume
+          mountPath: /data
+        - name: models-volume
+          mountPath: /models
+        - name: workflow-scripts
+          mountPath: /workspace
+        env:
+        - name: RAY_DISABLE_IMPORT_WARNING
+          value: "1"
+      volumes:
+      - name: data-volume
+        emptyDir: {}
+      - name: models-volume
+        emptyDir: {}
+      - name: workflow-scripts
+        configMap:
+          name: workflow-scripts

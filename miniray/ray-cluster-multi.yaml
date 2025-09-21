@@ -1,0 +1,70 @@
+apiVersion: ray.io/v1
+kind: RayCluster
+metadata:
+  name: ray-cluster-multi
+  namespace: ray-system
+spec:
+  rayVersion: '2.49.0'
+  headGroupSpec:
+    rayStartParams:
+      dashboard-host: '0.0.0.0'
+      num-cpus: '2'
+      memory: '2000000000'  # 2GB
+    serviceType: ClusterIP
+    template:
+      metadata:
+        labels:
+          app: ray-head
+      spec:
+        containers:
+        - name: ray-head
+          image: rayproject/ray:2.49.0-py311-cpu
+          imagePullPolicy: Always
+          ports:
+          - containerPort: 6379
+            name: gcs-server
+          - containerPort: 8265
+            name: dashboard
+          - containerPort: 10001
+            name: client
+          resources:
+            limits:
+              cpu: "2"
+              memory: 2Gi
+            requests:
+              cpu: "1"
+              memory: 1Gi
+          env:
+          - name: RAY_DISABLE_IMPORT_WARNING
+            value: "1"
+          command: ["/bin/bash", "-lc", "--"]
+          args: ["pip install -U pip && pip install pandas scikit-learn joblib && $KUBERAY_GEN_RAY_START_CMD"]
+  workerGroupSpecs:
+  - groupName: worker-group
+    replicas: 1
+    minReplicas: 0
+    maxReplicas: 2
+    rayStartParams:
+      num-cpus: '2'
+      memory: '2000000000'  # 2GB
+    template:
+      metadata:
+        labels:
+          app: ray-worker
+      spec:
+        containers:
+        - name: ray-worker
+          image: rayproject/ray:2.49.0-py311-cpu
+          imagePullPolicy: Always
+          resources:
+            limits:
+              cpu: "2"
+              memory: 2Gi
+            requests:
+              cpu: "1"
+              memory: 1Gi
+          env:
+          - name: RAY_DISABLE_IMPORT_WARNING
+            value: "1"
+          command: ["/bin/bash", "-lc", "--"]
+          args: ["pip install -U pip && pip install pandas scikit-learn joblib && $KUBERAY_GEN_RAY_START_CMD"]
