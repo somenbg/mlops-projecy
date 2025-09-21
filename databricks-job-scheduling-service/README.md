@@ -7,6 +7,7 @@ A comprehensive Python service for managing Databricks jobs with support for cre
 - **Job Management**: Create, list, and delete Databricks jobs
 - **Job Execution**: Trigger individual jobs or run multiple jobs in parallel
 - **Job Monitoring**: Poll job status and wait for completion
+- **Serverless Compute Support**: Full support for Databricks serverless compute
 - **Error Handling**: Comprehensive error handling and logging
 - **Configuration**: Flexible configuration via environment variables or config files
 - **Async Support**: Built with asyncio for efficient concurrent operations
@@ -40,14 +41,10 @@ async def main():
         token="your_personal_access_token"
     ) as scheduler:
         
-        # Create a job
+        # Create a job (using serverless compute)
         job_config = JobConfig(
             name="my_notebook_job",
-            new_cluster={
-                "spark_version": "13.3.x-scala2.12",
-                "node_type_id": "i3.xlarge",
-                "num_workers": 2
-            },
+            compute=[{"compute_key": "default"}],
             notebook_task={
                 "notebook_path": "/path/to/your/notebook"
             }
@@ -181,7 +178,20 @@ Represents a job run instance.
 
 ## Job Types
 
-### Notebook Jobs
+### Notebook Jobs (Serverless Compute)
+
+```python
+job_config = JobConfig(
+    name="notebook_job",
+    compute=[{"compute_key": "default"}],
+    notebook_task={
+        "notebook_path": "/path/to/notebook",
+        "base_parameters": {"param1": "value1"}
+    }
+)
+```
+
+### Notebook Jobs (Traditional Clusters)
 
 ```python
 job_config = JobConfig(
@@ -198,36 +208,98 @@ job_config = JobConfig(
 )
 ```
 
-### Python Script Jobs
+### Python Script Jobs (Traditional Cluster)
 
 ```python
 job_config = JobConfig(
     name="python_script_job",
     new_cluster={
-        "spark_version": "13.3.x-scala2.12",
-        "node_type_id": "i3.xlarge",
-        "num_workers": 1
+        "spark_version": "15.4.x-scala2.12",
+        "node_type_id": "m5d.xlarge",
+        "num_workers": 4,
+        "spark_conf": {
+            "spark.sql.adaptive.enabled": "true",
+            "spark.sql.adaptive.skewJoin.enabled": "true"
+        },
+        "aws_attributes": {
+            "availability": "SPOT",
+            "zone_id": "us-west-2a",
+            "spot_bid_price_percent": 100,
+            "first_on_demand": 1
+        },
+        "driver_node_type_id": "m5d.xlarge",
+        "enable_elastic_disk": True
     },
     python_script_task={
         "python_file": "dbfs:/path/to/script.py"
-    }
+    },
+    libraries=[
+        {"pypi": {"package": "pandas==2.0.3"}},
+        {"pypi": {"package": "boto3==1.28.25"}}
+    ],
+    timeout_seconds=3600,
+    max_retries=2
 )
 ```
 
-### Spark JAR Jobs
+### Spark JAR Jobs (Traditional Cluster)
 
 ```python
 job_config = JobConfig(
     name="spark_jar_job",
     new_cluster={
-        "spark_version": "13.3.x-scala2.12",
-        "node_type_id": "i3.xlarge",
-        "num_workers": 2
+        "spark_version": "15.4.x-scala2.12",
+        "node_type_id": "c5.2xlarge",
+        "num_workers": 6,
+        "spark_conf": {
+            "spark.sql.adaptive.enabled": "true",
+            "spark.serializer": "org.apache.spark.serializer.KryoSerializer"
+        },
+        "aws_attributes": {
+            "availability": "ON_DEMAND",
+            "zone_id": "us-west-2a"
+        },
+        "driver_node_type_id": "c5.2xlarge",
+        "enable_elastic_disk": True,
+        "init_scripts": [
+            {
+                "dbfs": {
+                    "destination": "dbfs:/init-scripts/spark-setup.sh"
+                }
+            }
+        ]
     },
     spark_jar_task={
         "jar_uri": "dbfs:/path/to/jar.jar",
         "main_class_name": "com.example.MainClass"
+    },
+    libraries=[
+        {"jar": "dbfs:/libraries/aws-sdk.jar"},
+        {"maven": {"coordinates": "org.apache.spark:spark-sql_2.12:3.4.0"}}
+    ],
+    timeout_seconds=10800,
+    schedule={
+        "quartz_cron_expression": "0 0 2 * * ?",
+        "timezone_id": "America/Los_Angeles",
+        "pause_status": "UNPAUSED"
     }
+)
+```
+
+### Existing Cluster Jobs
+
+```python
+job_config = JobConfig(
+    name="existing_cluster_job",
+    existing_cluster_id="1234-567890-cluster123",
+    notebook_task={
+        "notebook_path": "/path/to/notebook"
+    },
+    libraries=[
+        {"pypi": {"package": "pandas"}},
+        {"pypi": {"package": "scikit-learn"}}
+    ],
+    timeout_seconds=1800
 )
 ```
 
@@ -259,13 +331,59 @@ logger = setup_logger(
 )
 ```
 
+## Cluster Configuration Options
+
+### Traditional Cluster Configuration
+
+The service supports comprehensive traditional cluster configurations:
+
+#### Basic Cluster Settings
+- `spark_version`: Spark version (e.g., "15.4.x-scala2.12")
+- `node_type_id`: Instance type (e.g., "i3.xlarge", "m5d.xlarge", "c5.2xlarge")
+- `num_workers`: Number of worker nodes
+- `driver_node_type_id`: Driver node type (optional, defaults to worker type)
+
+#### AWS-Specific Settings
+- `aws_attributes`: AWS-specific configuration
+  - `availability`: "ON_DEMAND" or "SPOT"
+  - `zone_id`: Availability zone
+  - `spot_bid_price_percent`: Spot instance bid price percentage
+  - `first_on_demand`: Number of on-demand instances before using spot
+
+#### Spark Configuration
+- `spark_conf`: Spark configuration parameters
+  - `spark.sql.adaptive.enabled`: Enable adaptive query execution
+  - `spark.serializer`: Serializer class
+  - `spark.sql.adaptive.coalescePartitions.enabled`: Enable partition coalescing
+
+#### Additional Features
+- `enable_elastic_disk`: Enable automatic disk scaling
+- `init_scripts`: Initialization scripts to run on cluster startup
+- `custom_tags`: Custom tags for cost tracking and organization
+
+### Serverless Compute Configuration
+
+For serverless compute workspaces:
+- `compute`: Array of compute configurations
+  - `compute_key`: Compute key (typically "default")
+
 ## Examples
 
-See `example_usage.py` for comprehensive examples including:
-- Single job execution
-- Parallel job execution
-- Job management operations
-- Error handling scenarios
+See the following example files for comprehensive usage:
+
+### Basic Examples
+- `example_usage.py`: General usage examples
+- `examples/traditional_cluster_example.py`: Traditional cluster examples
+
+### Configuration Examples
+- `examples/notebook_job_config.json`: Serverless notebook job
+- `examples/traditional_cluster_notebook_job.json`: Traditional cluster notebook job
+- `examples/traditional_cluster_python_job.json`: Traditional cluster Python job
+- `examples/traditional_cluster_spark_jar_job.json`: Traditional cluster Spark JAR job
+- `examples/traditional_cluster_existing_cluster_job.json`: Existing cluster job
+
+### Advanced Examples
+- `examples/parallel_jobs_config.json`: Parallel job execution configuration
 
 ## Requirements
 

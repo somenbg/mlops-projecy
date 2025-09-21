@@ -5,6 +5,9 @@ Configuration module for Databricks Job Scheduling Service
 import os
 from typing import Optional
 from dataclasses import dataclass
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 @dataclass
@@ -68,9 +71,7 @@ class JobTemplate:
 NOTEBOOK_JOB_TEMPLATE = JobTemplate(
     name="notebook_job_template",
     cluster_config={
-        "spark_version": "13.3.x-scala2.12",
-        "node_type_id": "i3.xlarge",
-        "num_workers": 2
+        "compute": [{"compute_key": "default"}]
     },
     task_config={
         "notebook_path": "/path/to/notebook"
@@ -84,9 +85,7 @@ NOTEBOOK_JOB_TEMPLATE = JobTemplate(
 PYTHON_SCRIPT_JOB_TEMPLATE = JobTemplate(
     name="python_script_job_template",
     cluster_config={
-        "spark_version": "13.3.x-scala2.12",
-        "node_type_id": "i3.xlarge",
-        "num_workers": 1
+        "compute": [{"compute_key": "default"}]
     },
     task_config={
         "python_file": "dbfs:/path/to/script.py"
@@ -96,9 +95,7 @@ PYTHON_SCRIPT_JOB_TEMPLATE = JobTemplate(
 SPARK_JAR_JOB_TEMPLATE = JobTemplate(
     name="spark_jar_job_template",
     cluster_config={
-        "spark_version": "13.3.x-scala2.12",
-        "node_type_id": "i3.xlarge",
-        "num_workers": 2
+        "compute": [{"compute_key": "default"}]
     },
     task_config={
         "jar_uri": "dbfs:/path/to/jar.jar",

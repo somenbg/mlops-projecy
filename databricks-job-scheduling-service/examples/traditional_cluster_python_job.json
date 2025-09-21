@@ -1,0 +1,63 @@
+{
+  "name": "traditional_cluster_python_job",
+  "new_cluster": {
+    "spark_version": "15.4.x-scala2.12",
+    "node_type_id": "m5d.xlarge",
+    "num_workers": 4,
+    "spark_conf": {
+      "spark.sql.adaptive.enabled": "true",
+      "spark.sql.adaptive.skewJoin.enabled": "true",
+      "spark.sql.adaptive.localShuffleReader.enabled": "true"
+    },
+    "aws_attributes": {
+      "availability": "SPOT",
+      "zone_id": "us-west-2a",
+      "spot_bid_price_percent": 100,
+      "first_on_demand": 1
+    },
+    "driver_node_type_id": "m5d.xlarge",
+    "enable_elastic_disk": true,
+    "custom_tags": {
+      "Environment": "production",
+      "Owner": "data-team"
+    }
+  },
+  "python_script_task": {
+    "python_file": "dbfs:/scripts/data_processing.py",
+    "parameters": [
+      "--input-path", "/path/to/input",
+      "--output-path", "/path/to/output",
+      "--batch-size", "10000"
+    ]
+  },
+  "libraries": [
+    {
+      "pypi": {
+        "package": "requests==2.31.0"
+      }
+    },
+    {
+      "pypi": {
+        "package": "boto3==1.28.25"
+      }
+    },
+    {
+      "pypi": {
+        "package": "pandas==2.0.3"
+      }
+    },
+    {
+      "pypi": {
+        "package": "pyarrow==12.0.1"
+      }
+    }
+  ],
+  "timeout_seconds": 3600,
+  "max_retries": 2,
+  "retry_on_timeout": true,
+  "tags": {
+    "environment": "production",
+    "team": "data-engineering",
+    "workload": "etl"
+  }
+}

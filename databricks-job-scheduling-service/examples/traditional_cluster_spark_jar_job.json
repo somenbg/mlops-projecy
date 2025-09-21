@@ -1,0 +1,73 @@
+{
+  "name": "traditional_cluster_spark_jar_job",
+  "new_cluster": {
+    "spark_version": "15.4.x-scala2.12",
+    "node_type_id": "c5.2xlarge",
+    "num_workers": 6,
+    "spark_conf": {
+      "spark.sql.adaptive.enabled": "true",
+      "spark.sql.adaptive.coalescePartitions.enabled": "true",
+      "spark.serializer": "org.apache.spark.serializer.KryoSerializer",
+      "spark.sql.adaptive.skewJoin.enabled": "true"
+    },
+    "aws_attributes": {
+      "availability": "ON_DEMAND",
+      "zone_id": "us-west-2a"
+    },
+    "driver_node_type_id": "c5.2xlarge",
+    "enable_elastic_disk": true,
+    "init_scripts": [
+      {
+        "dbfs": {
+          "destination": "dbfs:/init-scripts/spark-setup.sh"
+        }
+      }
+    ],
+    "custom_tags": {
+      "Environment": "production",
+      "Owner": "spark-team",
+      "CostCenter": "engineering"
+    }
+  },
+  "spark_jar_task": {
+    "jar_uri": "dbfs:/jars/data-processing-app.jar",
+    "main_class_name": "com.company.dataprocessing.MainApp",
+    "parameters": [
+      "--input", "/path/to/input",
+      "--output", "/path/to/output",
+      "--config", "/path/to/config.json"
+    ]
+  },
+  "libraries": [
+    {
+      "jar": "dbfs:/libraries/aws-sdk.jar"
+    },
+    {
+      "jar": "dbfs:/libraries/json4s.jar"
+    },
+    {
+      "maven": {
+        "coordinates": "org.apache.spark:spark-sql_2.12:3.4.0"
+      }
+    }
+  ],
+  "timeout_seconds": 10800,
+  "max_retries": 2,
+  "retry_on_timeout": true,
+  "email_notifications": {
+    "on_start": ["spark-team@company.com"],
+    "on_success": ["spark-team@company.com"],
+    "on_failure": ["spark-team@company.com", "admin@company.com"]
+  },
+  "schedule": {
+    "quartz_cron_expression": "0 0 2 * * ?",
+    "timezone_id": "America/Los_Angeles",
+    "pause_status": "UNPAUSED"
+  },
+  "tags": {
+    "environment": "production",
+    "team": "spark-engineering",
+    "workload": "batch-processing",
+    "schedule": "daily"
+  }
+}

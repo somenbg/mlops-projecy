@@ -1,0 +1,32 @@
+{
+  "name": "traditional_cluster_existing_cluster_job",
+  "existing_cluster_id": "1234-567890-cluster123",
+  "notebook_task": {
+    "notebook_path": "/Users/somenbg@gmail.com/notebooks/existing_cluster_notebook",
+    "base_parameters": {
+      "input_path": "/path/to/input",
+      "output_path": "/path/to/output",
+      "model_version": "v1.5"
+    }
+  },
+  "libraries": [
+    {
+      "pypi": {
+        "package": "pandas==2.0.3"
+      }
+    },
+    {
+      "pypi": {
+        "package": "scikit-learn==1.3.0"
+      }
+    }
+  ],
+  "timeout_seconds": 1800,
+  "max_retries": 1,
+  "retry_on_timeout": false,
+  "tags": {
+    "environment": "development",
+    "team": "data-science",
+    "cluster": "shared-dev"
+  }
+}

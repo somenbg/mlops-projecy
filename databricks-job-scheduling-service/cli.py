@@ -56,7 +56,7 @@ async def list_jobs_command(args):
         
         print(f"Found {len(jobs)} jobs:")
         for job in jobs:
-            print(f"  ID: {job['job_id']}, Name: {job['job_name']}, Created: {job.get('created_time', 'N/A')}")
+            print(f"  ID: {job['job_id']}, Name: {job.get('settings', {}).get('name', 'N/A')}, Created: {job.get('created_time', 'N/A')}")
 
 
 async def get_job_run_command(args):

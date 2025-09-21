@@ -8,11 +8,11 @@ with support for parallel execution and polling to completion.
 import asyncio
 import logging
 import time
+import json
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass
 from enum import Enum
 import aiohttp
-import json
 from datetime import datetime
 
 
@@ -40,6 +40,7 @@ class JobConfig:
     name: str
     new_cluster: Optional[Dict[str, Any]] = None
     existing_cluster_id: Optional[str] = None
+    compute: Optional[List[Dict[str, Any]]] = None  # For serverless compute
     libraries: Optional[List[Dict[str, Any]]] = None
     notebook_task: Optional[Dict[str, Any]] = None
     spark_jar_task: Optional[Dict[str, Any]] = None
@@ -111,7 +112,16 @@ class DatabricksJobScheduler:
         
         try:
             async with self.session.request(method, url, json=data) as response:
-                response.raise_for_status()
+                if response.status >= 400:
+                    error_text = await response.text()
+                    self.logger.error(f"HTTP request failed: {response.status}, message='{response.reason}', url={url}")
+                    self.logger.error(f"Response body: {error_text}")
+                    raise aiohttp.ClientResponseError(
+                        request_info=response.request_info,
+                        history=response.history,
+                        status=response.status,
+                        message=f"{response.status}: {response.reason} - {error_text}"
+                    )
                 return await response.json()
         except aiohttp.ClientError as e:
             self.logger.error(f"HTTP request failed: {e}")
@@ -132,7 +142,7 @@ class DatabricksJobScheduler:
         """
         self.logger.info(f"Creating job: {job_config.name}")
         
-        # Prepare job payload
+        # Prepare job payload according to Databricks API spec
         job_payload = {
             "name": job_config.name,
             "max_concurrent_runs": job_config.max_concurrent_runs,
@@ -141,27 +151,55 @@ class DatabricksJobScheduler:
             "retry_on_timeout": job_config.retry_on_timeout
         }
         
-        # Add cluster configuration
+        # Create tasks array - Databricks API requires tasks array
+        tasks = []
+        
+        # Build task configuration
+        task = {}
+        
+        # Add cluster configuration to task
         if job_config.new_cluster:
-            job_payload["new_cluster"] = job_config.new_cluster
+            task["new_cluster"] = job_config.new_cluster
         elif job_config.existing_cluster_id:
-            job_payload["existing_cluster_id"] = job_config.existing_cluster_id
+            task["existing_cluster_id"] = job_config.existing_cluster_id
+        elif job_config.compute:
+            # For serverless compute, add compute configuration
+            task["compute"] = job_config.compute
         
-        # Add task configuration
+        # Add task type configuration
         if job_config.notebook_task:
-            job_payload["notebook_task"] = job_config.notebook_task
+            task["notebook_task"] = job_config.notebook_task
         elif job_config.spark_jar_task:
-            job_payload["spark_jar_task"] = job_config.spark_jar_task
+            task["spark_jar_task"] = job_config.spark_jar_task
         elif job_config.python_script_task:
-            job_payload["python_script_task"] = job_config.python_script_task
+            task["python_script_task"] = job_config.python_script_task
         elif job_config.spark_python_task:
-            job_payload["spark_python_task"] = job_config.spark_python_task
+            task["spark_python_task"] = job_config.spark_python_task
         elif job_config.spark_submit_task:
-            job_payload["spark_submit_task"] = job_config.spark_submit_task
+            task["spark_submit_task"] = job_config.spark_submit_task
         
-        # Add optional configurations
-        if job_config.libraries:
-            job_payload["libraries"] = job_config.libraries
+        # Add libraries to task (only for non-serverless compute)
+        if job_config.libraries and not job_config.compute:
+            task["libraries"] = job_config.libraries
+        elif job_config.libraries and job_config.compute:
+            # For serverless compute, libraries go in environment
+            if "environment" not in task:
+                task["environment"] = {}
+            task["environment"]["spec"] = {
+                "libraries": job_config.libraries
+            }
+        
+        # Add task name (required)
+        task["task_key"] = f"{job_config.name}_task"
+        
+        # Add timeout to task
+        if job_config.timeout_seconds > 0:
+            task["timeout_seconds"] = job_config.timeout_seconds
+        
+        tasks.append(task)
+        job_payload["tasks"] = tasks
+        
+        # Add optional job-level configurations
         if job_config.email_notifications:
             job_payload["email_notifications"] = job_config.email_notifications
         if job_config.schedule:
@@ -170,7 +208,9 @@ class DatabricksJobScheduler:
             job_payload["tags"] = job_config.tags
         
         try:
-            response = await self._make_request("POST", "", job_payload)
+            # Debug logging
+            self.logger.debug(f"Job payload: {json.dumps(job_payload, indent=2)}")
+            response = await self._make_request("POST", "create", job_payload)
             job_id = response["job_id"]
             self.logger.info(f"Job created successfully with ID: {job_id}")
             return job_id

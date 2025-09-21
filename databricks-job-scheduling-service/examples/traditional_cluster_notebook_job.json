@@ -1,0 +1,73 @@
+{
+  "name": "traditional_cluster_notebook_job",
+  "new_cluster": {
+    "spark_version": "15.4.x-scala2.12",
+    "node_type_id": "i3.xlarge",
+    "num_workers": 2,
+    "spark_conf": {
+      "spark.sql.adaptive.enabled": "true",
+      "spark.sql.adaptive.coalescePartitions.enabled": "true",
+      "spark.serializer": "org.apache.spark.serializer.KryoSerializer"
+    },
+    "aws_attributes": {
+      "availability": "ON_DEMAND",
+      "zone_id": "us-west-2a"
+    },
+    "driver_node_type_id": "i3.xlarge",
+    "enable_elastic_disk": true,
+    "init_scripts": [
+      {
+        "dbfs": {
+          "destination": "dbfs:/init-scripts/setup.sh"
+        }
+      }
+    ]
+  },
+  "notebook_task": {
+    "notebook_path": "/Users/somenbg@gmail.com/notebooks/traditional_cluster_notebook",
+    "base_parameters": {
+      "input_path": "/path/to/input",
+      "output_path": "/path/to/output",
+      "model_version": "v2.0"
+    }
+  },
+  "libraries": [
+    {
+      "pypi": {
+        "package": "pandas==2.0.3"
+      }
+    },
+    {
+      "pypi": {
+        "package": "scikit-learn==1.3.0"
+      }
+    },
+    {
+      "pypi": {
+        "package": "numpy==1.24.3"
+      }
+    },
+    {
+      "pypi": {
+        "package": "matplotlib==3.7.2"
+      }
+    },
+    {
+      "jar": "dbfs:/libraries/custom-library.jar"
+    }
+  ],
+  "timeout_seconds": 7200,
+  "max_retries": 3,
+  "retry_on_timeout": true,
+  "email_notifications": {
+    "on_start": ["admin@company.com"],
+    "on_success": ["team@company.com"],
+    "on_failure": ["admin@company.com", "team@company.com"]
+  },
+  "tags": {
+    "environment": "production",
+    "team": "data-engineering",
+    "project": "ml-pipeline",
+    "cost-center": "engineering"
+  }
+}

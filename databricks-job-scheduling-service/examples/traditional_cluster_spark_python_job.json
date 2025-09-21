@@ -1,0 +1,71 @@
+{
+  "name": "traditional_cluster_spark_python_job",
+  "new_cluster": {
+    "spark_version": "15.4.x-scala2.12",
+    "node_type_id": "r5.xlarge",
+    "num_workers": 3,
+    "spark_conf": {
+      "spark.sql.adaptive.enabled": "true",
+      "spark.sql.adaptive.coalescePartitions.enabled": "true",
+      "spark.serializer": "org.apache.spark.serializer.KryoSerializer",
+      "spark.sql.adaptive.skewJoin.enabled": "true",
+      "spark.sql.adaptive.localShuffleReader.enabled": "true"
+    },
+    "aws_attributes": {
+      "availability": "ON_DEMAND",
+      "zone_id": "us-west-2a"
+    },
+    "driver_node_type_id": "r5.xlarge",
+    "enable_elastic_disk": true,
+    "init_scripts": [
+      {
+        "dbfs": {
+          "destination": "dbfs:/init-scripts/python-setup.sh"
+        }
+      }
+    ]
+  },
+  "spark_python_task": {
+    "python_file": "dbfs:/scripts/spark_data_processing.py",
+    "parameters": [
+      "--input-path", "/path/to/input",
+      "--output-path", "/path/to/output",
+      "--partitions", "200"
+    ]
+  },
+  "libraries": [
+    {
+      "pypi": {
+        "package": "pyspark==3.4.0"
+      }
+    },
+    {
+      "pypi": {
+        "package": "pandas==2.0.3"
+      }
+    },
+    {
+      "pypi": {
+        "package": "numpy==1.24.3"
+      }
+    },
+    {
+      "pypi": {
+        "package": "scikit-learn==1.3.0"
+      }
+    },
+    {
+      "pypi": {
+        "package": "mlflow==2.5.0"
+      }
+    }
+  ],
+  "timeout_seconds": 5400,
+  "max_retries": 2,
+  "retry_on_timeout": true,
+  "tags": {
+    "environment": "production",
+    "team": "ml-engineering",
+    "workload": "ml-training"
+  }
+}

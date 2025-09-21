@@ -6,7 +6,7 @@
     }
   ],
   "notebook_task": {
-    "notebook_path": "/Users/somenbg@gmail.com/notebooks/sample_notebook",
+    "notebook_path": "/Users/somenbg@gmail.com/notebooks/sample_notebook_1",
     "base_parameters": {
       "input_path": "/path/to/input",
       "output_path": "/path/to/output"
