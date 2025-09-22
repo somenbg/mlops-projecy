@@ -1,0 +1,46 @@
+{
+  "name": "daily_etl_job",
+  "compute": [
+    {
+      "compute_key": "default"
+    }
+  ],
+  "notebook_task": {
+    "notebook_path": "/Users/somenbg@gmail.com/notebooks/daily_etl",
+    "base_parameters": {
+      "date": "${date}",
+      "environment": "production"
+    }
+  },
+  "libraries": [
+    {
+      "pypi": {
+        "package": "pandas"
+      }
+    },
+    {
+      "pypi": {
+        "package": "boto3"
+      }
+    }
+  ],
+  "timeout_seconds": 14400,
+  "max_retries": 2,
+  "retry_on_timeout": true,
+  "schedule": {
+    "quartz_cron_expression": "0 0 2 * * ?",
+    "timezone_id": "America/Los_Angeles",
+    "pause_status": "UNPAUSED"
+  },
+  "email_notifications": {
+    "on_start": ["etl-team@company.com"],
+    "on_success": ["etl-team@company.com"],
+    "on_failure": ["etl-team@company.com", "admin@company.com"]
+  },
+  "tags": {
+    "environment": "production",
+    "team": "data-engineering",
+    "schedule": "daily",
+    "workload": "etl"
+  }
+}

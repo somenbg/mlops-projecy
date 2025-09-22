@@ -1,0 +1,25 @@
+{
+  "name": "simple_notebook_job",
+  "compute": [
+    {
+      "compute_key": "default"
+    }
+  ],
+  "notebook_task": {
+    "notebook_path": "/Users/somenbg@gmail.com/notebooks/simple_notebook"
+  },
+  "libraries": [
+    {
+      "pypi": {
+        "package": "pandas"
+      }
+    }
+  ],
+  "timeout_seconds": 3600,
+  "max_retries": 2,
+  "retry_on_timeout": true,
+  "tags": {
+    "environment": "development",
+    "team": "data-science"
+  }
+}

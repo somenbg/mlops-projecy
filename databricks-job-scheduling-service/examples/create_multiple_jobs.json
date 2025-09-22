@@ -1,0 +1,77 @@
+[
+  {
+    "name": "data_processing_job",
+    "compute": [
+      {
+        "compute_key": "default"
+      }
+    ],
+    "notebook_task": {
+      "notebook_path": "/Users/somenbg@gmail.com/notebooks/data_processing",
+      "base_parameters": {
+        "input_path": "/data/input",
+        "output_path": "/data/output"
+      }
+    },
+    "libraries": [
+      {
+        "pypi": {
+          "package": "pandas"
+        }
+      },
+      {
+        "pypi": {
+          "package": "numpy"
+        }
+      }
+    ],
+    "timeout_seconds": 7200,
+    "max_retries": 3,
+    "retry_on_timeout": true,
+    "tags": {
+      "environment": "production",
+      "team": "data-engineering",
+      "workload": "etl"
+    }
+  },
+  {
+    "name": "ml_training_job",
+    "compute": [
+      {
+        "compute_key": "default"
+      }
+    ],
+    "notebook_task": {
+      "notebook_path": "/Users/somenbg@gmail.com/notebooks/ml_training",
+      "base_parameters": {
+        "model_type": "random_forest",
+        "test_size": "0.2"
+      }
+    },
+    "libraries": [
+      {
+        "pypi": {
+          "package": "scikit-learn"
+        }
+      },
+      {
+        "pypi": {
+          "package": "pandas"
+        }
+      }
+    ],
+    "timeout_seconds": 10800,
+    "max_retries": 2,
+    "retry_on_timeout": true,
+    "email_notifications": {
+      "on_start": ["ml-team@company.com"],
+      "on_success": ["ml-team@company.com"],
+      "on_failure": ["ml-team@company.com", "admin@company.com"]
+    },
+    "tags": {
+      "environment": "production",
+      "team": "ml-engineering",
+      "workload": "training"
+    }
+  }
+]
