@@ -1,0 +1,42 @@
+[
+  {
+    "job_id": 260482705947228,
+    "trigger_params": {
+      "notebook_params": {
+        "input_path": "/data/raw/input",
+        "output_path": "/data/processed/output",
+        "model_version": "v2.1",
+        "feature_engineering": "true",
+        "validation_split": "0.2"
+      }
+    }
+  },
+  {
+    "job_id": 697909345169014,
+    "trigger_params": {
+      "python_params": [
+        "--input-path", "/data/raw/input",
+        "--output-path", "/data/processed/output",
+        "--batch-size", "5000",
+        "--num-workers", "4",
+        "--validation-split", "0.2"
+      ],
+      "python_named_params": {
+        "model_type": "random_forest",
+        "max_depth": "10",
+        "n_estimators": "100"
+      }
+    }
+  },
+  {
+    "job_id": 260482705947228,
+    "trigger_params": {
+      "jar_params": [
+        "--input", "/data/raw/input",
+        "--output", "/data/processed/output",
+        "--config", "/config/spark-processing.json",
+        "--partitions", "200"
+      ]
+    }
+  }
+]

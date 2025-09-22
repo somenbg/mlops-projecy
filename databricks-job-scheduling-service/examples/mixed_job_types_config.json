@@ -1,0 +1,32 @@
+[
+  {
+    "job_id": 260482705947228,
+    "trigger_params": {
+      "notebook_params": {
+        "input_path": "/data/input",
+        "output_path": "/data/output",
+        "model_version": "v1.5"
+      }
+    }
+  },
+  {
+    "job_id": 697909345169014,
+    "trigger_params": {
+      "python_params": [
+        "--input-path", "/data/input",
+        "--output-path", "/data/output",
+        "--batch-size", "1000"
+      ]
+    }
+  },
+  {
+    "job_id": 260482705947228,
+    "trigger_params": {
+      "jar_params": [
+        "--input", "/data/input",
+        "--output", "/data/output",
+        "--config", "/config/processing.json"
+      ]
+    }
+  }
+]
