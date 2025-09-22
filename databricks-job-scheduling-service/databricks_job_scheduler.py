@@ -106,12 +106,12 @@ class DatabricksJobScheduler:
         if self.session:
             await self.session.close()
     
-    async def _make_request(self, method: str, endpoint: str, data: Optional[Dict] = None) -> Dict[str, Any]:
+    async def _make_request(self, method: str, endpoint: str, data: Optional[Dict] = None, params: Optional[Dict] = None) -> Dict[str, Any]:
         """Make HTTP request to Databricks API"""
         url = f"{self.host}/api/2.1/jobs/{endpoint}"
         
         try:
-            async with self.session.request(method, url, json=data) as response:
+            async with self.session.request(method, url, json=data, params=params) as response:
                 if response.status >= 400:
                     error_text = await response.text()
                     self.logger.error(f"HTTP request failed: {response.status}, message='{response.reason}', url={url}")
@@ -221,7 +221,8 @@ class DatabricksJobScheduler:
     async def trigger_job(self, job_id: int, notebook_params: Optional[Dict[str, str]] = None,
                          python_params: Optional[List[str]] = None,
                          jar_params: Optional[List[str]] = None,
-                         python_named_params: Optional[Dict[str, str]] = None) -> int:
+                         python_named_params: Optional[Dict[str, str]] = None,
+                         job_parameters: Optional[List[Dict[str, Any]]] = None) -> int:
         """
         Trigger a job run
         
@@ -231,6 +232,7 @@ class DatabricksJobScheduler:
             python_params: Parameters for Python tasks
             jar_params: Parameters for JAR tasks
             python_named_params: Named parameters for Python tasks
+            job_parameters: Job-level parameters (apply to all tasks)
             
         Returns:
             Run ID of the triggered job
@@ -239,14 +241,54 @@ class DatabricksJobScheduler:
         
         run_payload = {"job_id": job_id}
         
-        if notebook_params:
-            run_payload["notebook_params"] = notebook_params
-        if python_params:
-            run_payload["python_params"] = python_params
-        if jar_params:
-            run_payload["jar_params"] = jar_params
-        if python_named_params:
-            run_payload["python_named_params"] = python_named_params
+        # Check if we have task-specific parameters
+        has_task_params = any([notebook_params, python_params, jar_params, python_named_params])
+        
+        if job_parameters:
+            # Start with job_parameters (new format) - transform from name/default to key/value
+            transformed_params = []
+            for param in job_parameters:
+                if isinstance(param, dict):
+                    if "name" in param and "default" in param:
+                        # Transform name/default to key/value
+                        transformed_params.append({
+                            "key": param["name"],
+                            "value": param["default"]
+                        })
+                    elif "key" in param and "value" in param:
+                        # Already in correct format
+                        transformed_params.append(param)
+            
+            # Merge with task-specific parameters if present
+            if notebook_params:
+                # Merge notebook_params into job_parameters
+                for key, value in notebook_params.items():
+                    # Check if parameter already exists in job_parameters
+                    existing_param = next((p for p in transformed_params if p["key"] == key), None)
+                    if existing_param:
+                        # Update existing parameter
+                        existing_param["value"] = value
+                        self.logger.info(f"Updated job parameter '{key}' from '{existing_param['value']}' to '{value}'")
+                    else:
+                        # Add new parameter
+                        transformed_params.append({"key": key, "value": value})
+                        self.logger.info(f"Added new job parameter '{key}' = '{value}'")
+            
+            run_payload["job_parameters"] = transformed_params
+            
+            if python_params or jar_params or python_named_params:
+                # Log warning for unsupported task parameters with job_parameters
+                self.logger.warning("job_parameters detected. Ignoring python_params, jar_params, and python_named_params as they cannot be merged with job_parameters.")
+        else:
+            # Use legacy task-specific parameters
+            if notebook_params:
+                run_payload["notebook_params"] = notebook_params
+            if python_params:
+                run_payload["python_params"] = python_params
+            if jar_params:
+                run_payload["jar_params"] = jar_params
+            if python_named_params:
+                run_payload["python_named_params"] = python_named_params
         
         try:
             response = await self._make_request("POST", "run-now", run_payload)
